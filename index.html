@@ -1,1 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O² Framework — Organizational Orchestration</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;--sur:#0d0d1c;--s2:#13132a;--bdr:#232340;
+  --txt:#d8d8ea;--dim:#7070a0;
+  --pal-bg:#05101e;--pal-hi:#1a4a80;--pal-acc:#6aacf0;--pal-dk:#040c17;
+  --cat-bg:#0a0618;--cat-hi:#3a1a7a;--cat-acc:#a87af5;--cat-dk:#06030f;
+  --enc-bg:#040e08;--enc-hi:#165a24;--enc-acc:#5af090;--enc-dk:#020804;
+  --mon-bg:#0e0704;--mon-hi:#583010;--mon-acc:#f0b85a;--mon-dk:#080402;
+  --eng:#0e0e22;--gold:#c8a84b;--ax:#1a1a34;
+}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 
+/* ── HEADER ── */
+header{flex:0 0 auto;padding:9px 22px;border-bottom:1px solid var(--bdr);background:var(--sur);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.ht{font-size:16px;font-weight:700;letter-spacing:.06em;color:var(--gold)}
+.hs{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.04em}
+.bc{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim)}
+.bci{cursor:pointer;padding:3px 8px;border-radius:4px;transition:background .15s,color .15s;white-space:nowrap}
+.bci:hover{background:var(--s2);color:var(--txt)}
+.bci.on{color:var(--txt);cursor:default}
+.bcs{opacity:.35}
+
+/* ── STAGE ── */
+#stage{flex:1;position:relative;overflow:hidden}
+
+/* ── VIEWS ── */
+.v{position:absolute;inset:0;overflow-y:auto;transition:opacity .22s,transform .22s;display:flex;flex-direction:column;align-items:center}
+.v.hidden{opacity:0;pointer-events:none}
+.v.fwd-out{transform:scale(.95)}
+.v.fwd-in{animation:fadeIn .22s ease forwards}
+.v.bk-out{transform:scale(1.04)}
+@keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+
+/* ── MAP VIEW ── */
+#v-map{justify-content:center;padding:32px 40px}
+.fm{position:relative;width:480px;height:480px;flex-shrink:0}
+.axlbl{position:absolute;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.axlbl.top{top:-22px;left:50%;transform:translateX(-50%)}
+.axlbl.bottom{bottom:-22px;left:50%;transform:translateX(-50%)}
+.axlbl.left{left:-54px;top:50%;transform:translateY(-50%) rotate(-90deg)}
+.axlbl.right{right:-54px;top:50%;transform:translateY(-50%) rotate(90deg)}
+.cw{position:absolute;inset:0;border-radius:50%;overflow:hidden;display:grid;grid-template:1fr 1fr/1fr 1fr;border:1px solid var(--bdr)}
+.qc{position:relative;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;transition:filter .2s,opacity .2s}
+.qc:hover{filter:brightness(1.55)}
+.qc.dimmed{opacity:.28;filter:saturate(.3)}
+.qc.palace{background:var(--pal-bg)}
+.qc.cathedral{background:var(--cat-bg)}
+.qc.encampment{background:var(--enc-bg)}
+.qc.monastery{background:var(--mon-bg)}
+.qn{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.palace .qn{color:var(--pal-acc)}.cathedral .qn{color:var(--cat-acc)}
+.encampment .qn{color:var(--enc-acc)}.monastery .qn{color:var(--mon-acc)}
+.fp{display:flex;flex-direction:column;gap:3px;align-items:center}
+.fpp{font-size:9px;font-weight:600;letter-spacing:.05em;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.fpp:hover{background:rgba(255,255,255,.17);color:rgba(255,255,255,.9)}
+.axlines{position:absolute;inset:0;pointer-events:none;z-index:2}
+.axh{position:absolute;top:50%;left:0;right:0;height:1px;background:var(--ax)}
+.axv{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--ax)}
+.cd{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;cursor:pointer}
+.cdbox{width:62px;height:62px;transform:rotate(45deg);background:var(--eng);border:1px solid var(--gold);transition:filter .2s}
+.cd:hover .cdbox{filter:brightness(2.2)}
+.cdlbl{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);white-space:nowrap;text-align:center;line-height:1.3}
+
+/* ── SHARED INNER LAYOUT ── */
+.vinner{width:100%;max-width:900px;padding:24px 32px 40px}
+
+/* ── TOP NAV ── */
+.vnav{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.vbk{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:rgba(255,255,255,.4);cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.1);transition:background .15s,color .15s;white-space:nowrap}
+.vbk:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8)}
+.vchip{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:all .15s;white-space:nowrap}
+.vchip:hover{opacity:1!important;filter:none!important;border-color:rgba(255,255,255,.2)}
+.vchip.cur{border-color:rgba(255,255,255,.25)!important;opacity:1!important}
+.vsep{color:rgba(255,255,255,.2);font-size:13px}
+
+/* ── QUADRANT HEADER ── */
+.qhd{margin-bottom:24px}
+.qmeta{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:5px}
+.qname-big{font-size:38px;font-weight:700;letter-spacing:.03em;margin-bottom:4px}
+.qtag{font-size:14px;font-style:italic;color:rgba(255,255,255,.45);margin-bottom:2px}
+
+/* ── FUNCTION TILES ── */
+.fn-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fntile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:22px;cursor:pointer;transition:background .2s,border-color .2s,transform .18s}
+.fntile:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.22);transform:translateY(-2px)}
+.fntile-badge{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px}
+.fntile-name{font-size:22px;font-weight:700;margin-bottom:6px}
+.fntile-desc{font-size:13px;color:rgba(255,255,255,.45);line-height:1.65;margin-bottom:14px}
+.fntile-roles{display:flex;flex-wrap:wrap;gap:6px}
+.fntile-role{font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.45)}
+
+/* ── FUNCTION VIEW HEADER ── */
+.fhd{margin-bottom:24px}
+.fmeta{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:5px}
+.fname-big{font-size:34px;font-weight:700;letter-spacing:.03em;margin-bottom:6px}
+.fdesc{font-size:14px;font-style:italic;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:2px}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.07)}
+
+/* ── ROLE CARDS ── */
+.rcards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.rc{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:20px;cursor:context-menu;transition:background .2s,border-color .2s,transform .18s;user-select:none}
+.rc:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.22);transform:translateY(-2px)}
+.rc-name{font-size:19px;font-weight:700;letter-spacing:.02em;margin-bottom:6px}
+.rc-phrase{font-size:12px;color:rgba(255,255,255,.42);line-height:1.55;margin-bottom:12px}
+.rc-hint{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.2)}
+
+/* ── COORD VIEW ── */
+.cov-intro{font-size:13px;line-height:1.85;color:rgba(255,255,255,.5);margin-bottom:24px}
+.eng-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
+.engcard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:16px;cursor:context-menu;transition:background .2s}
+.engcard:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2)}
+.engcard-name{font-size:15px;font-weight:700;color:var(--gold);margin-bottom:3px}
+.engcard-sub{font-size:10px;color:rgba(255,255,255,.28);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.engcard-desc{font-size:12px;color:rgba(255,255,255,.45);line-height:1.55}
+
+/* ── TOOLTIP ── */
+#tt{position:fixed;background:rgba(5,5,16,.97);border:1px solid var(--bdr);color:var(--txt);font-size:12px;padding:6px 11px;border-radius:5px;pointer-events:none;z-index:5000;max-width:270px;line-height:1.5;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+
+/* ── CONTEXT MENU ── */
+#ctx{position:fixed;background:var(--s2);border:1px solid var(--bdr);border-radius:8px;padding:5px;z-index:6000;display:none;min-width:192px;box-shadow:0 10px 40px rgba(0,0,0,.7)}
+.ctxh{padding:5px 10px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--bdr);margin-bottom:3px}
+.ctxi{padding:8px 12px;font-size:13px;cursor:pointer;border-radius:5px;display:flex;align-items:center;justify-content:space-between;transition:background .1s}
+.ctxi:hover{background:var(--sur)}
+.ctxhint{font-size:10px;color:var(--dim)}
+
+/* ── MODAL ── */
+#mov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:7000;display:none;align-items:center;justify-content:center}
+#mov.open{display:flex}
+#mo{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:28px;max-width:650px;width:92%;max-height:84vh;overflow-y:auto;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.7)}
+.moc{position:absolute;top:14px;right:14px;width:26px;height:26px;border:1px solid var(--bdr);border-radius:50%;background:transparent;color:var(--dim);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.moc:hover{background:var(--s2)}
+.motabs{display:flex;gap:4px;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--bdr)}
+.motab{padding:5px 14px;font-size:11px;font-weight:600;letter-spacing:.07em;border-radius:4px;cursor:pointer;background:transparent;border:1px solid var(--bdr);color:var(--dim);transition:all .15s}
+.motab.on{background:var(--s2);color:var(--txt);border-color:rgba(255,255,255,.25)}
+.molede{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.motitle{font-size:21px;font-weight:700;margin-bottom:16px}
+.mobody{font-size:13px;line-height:1.88;color:var(--txt)}
+.mobody p{margin-bottom:13px}
+.mobody p:last-child{margin-bottom:0}
+.mobody strong{font-weight:600}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="ht">O² Framework</div><div class="hs">Organizational Orchestration · Peace Gaming Congress</div></div>
+  <div class="bc" id="bc"><span class="bci on">Framework Map</span></div>
+</header>
+
+<main id="stage">
+  <!-- VIEW: MAP -->
+  <div class="v" id="v-map">
+    <div class="fm">
+      <div class="axlbl top">Establishment</div>
+      <div class="axlbl bottom">Alternative</div>
+      <div class="axlbl left">State</div>
+      <div class="axlbl right">Church</div>
+      <div class="cw">
+        <div class="qc palace" data-tt="Power made permanent — the seat of sovereign will" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toQ('palace')" oncontextmenu="showCtx(event,'palace')">
+          <div class="qn">Palace</div>
+          <div class="fp">
+            <div class="fpp" data-tt="How the state structures itself internally" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'palace','org')">Org</div>
+            <div class="fpp" data-tt="How the state watches and knows the world outside" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'palace','intel')">Intel</div>
+          </div>
+        </div>
+        <div class="qc cathedral" data-tt="Faith made monumental — institutional spiritual authority" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toQ('cathedral')" oncontextmenu="showCtx(event,'cathedral')">
+          <div class="qn">Cathedral</div>
+          <div class="fp">
+            <div class="fpp" data-tt="How the church governs and mediates internally" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'cathedral','board')">Board</div>
+            <div class="fpp" data-tt="How the church negotiates and projects outward" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'cathedral','diplomacy')">Diplomacy</div>
+          </div>
+        </div>
+        <div class="qc encampment" data-tt="Power in motion — organized for survival and purpose, not permanence" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toQ('encampment')" oncontextmenu="showCtx(event,'encampment')">
+          <div class="qn">Encampment</div>
+          <div class="fp">
+            <div class="fpp" data-tt="How the alternative builds and innovates from within" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'encampment','disruption')">Disruption</div>
+            <div class="fpp" data-tt="How the alternative applies force and operates in the field" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'encampment','militia')">Militia</div>
+          </div>
+        </div>
+        <div class="qc monastery" data-tt="Faith withdrawn — preserving truth against the official order's corruption" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toQ('monastery')" oncontextmenu="showCtx(event,'monastery')">
+          <div class="qn">Monastery</div>
+          <div class="fp">
+            <div class="fpp" data-tt="How the alternative church judges and challenges from within" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'monastery','opposition')">Opposition</div>
+            <div class="fpp" data-tt="How the alternative church endures and counter-narrativizes outward" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toF(event,'monastery','resistance')">Resistance</div>
+          </div>
+        </div>
+      </div>
+      <div class="axlines"><div class="axh"></div><div class="axv"></div></div>
+      <div class="cd" data-tt="The central aligner — holds the whole network in relationship" onmouseenter="tt(event,this)" onmouseleave="ht()" onclick="toCoord()" oncontextmenu="showCtx(event,'coordinator')">
+        <div class="cdbox"></div><div class="cdlbl">Coord.</div>
+      </div>
+    </div>
+  </div>
+  <!-- dynamic views rendered by JS -->
+  <div class="v hidden" id="v-quad"></div>
+  <div class="v hidden" id="v-fn"></div>
+  <div class="v hidden" id="v-coord"></div>
+</main>
+
+<div id="tt"></div>
+<div id="ctx">
+  <div class="ctxh" id="ctxname">Explain</div>
+  <div class="ctxi" onclick="openMo('sentence')"><span>One sentence</span><span class="ctxhint">Quick</span></div>
+  <div class="ctxi" onclick="openMo('paragraph')"><span>One paragraph</span><span class="ctxhint">Full</span></div>
+  <div class="ctxi" onclick="openMo('page')"><span>Full explanation</span><span class="ctxhint">Deep</span></div>
+</div>
+<div id="mov">
+  <div id="mo">
+    <button class="moc" onclick="closeMo()">×</button>
+    <div class="molede" id="molede"></div>
+    <div class="motitle" id="motitle"></div>
+    <div class="motabs">
+      <button class="motab" data-d="sentence" onclick="swD('sentence')">Sentence</button>
+      <button class="motab" data-d="paragraph" onclick="swD('paragraph')">Paragraph</button>
+      <button class="motab" data-d="page" onclick="swD('page')">Full</button>
+    </div>
+    <div class="mobody" id="mobody"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ROLE DATA — all 33 roles with 3-depth explanations
+// ═══════════════════════════════════════════════════════
+const R = {
+  operators:{name:'Operators',hover:'The engine of the institution — they run the systems that keep it alive',lede:'Palace · Org · Internal',
+    ex:{sentence:'Operators are the execution layer of official power — the people who run the day-to-day systems and processes that keep the institution functional.',
+    paragraph:'Operators are the largest and most essential cohort in the Org function. They don\'t set direction and they don\'t question it — they execute it. Their relationship to the institution is procedural: they understand how the machinery works and they work within that understanding. This apparent limitation hides real power: when Operators slow down or stop, the institution stops. In O² diagnostic work, mapping where the Operators actually are — versus where the org chart places them — often reveals the true structure of institutional function.',
+    page:'<p>Operators are the foundation of institutional power — not its architects, not its critics, but the people without whom none of it runs. They occupy the execution layer: the people who actually do the work the institution exists to do.</p><p>The Operator\'s relationship to the institution is primarily procedural. They know how things work and they work accordingly. This makes them seem passive from above, but they are anything but: Operators collectively hold more leverage over institutional function than almost any other role. When they choose to slow down, work to rule, or simply stop, the institution\'s power becomes theoretical rather than real.</p><p>In O² diagnostic work, the first question about any Org function is: where are the real Operators? The official org chart rarely answers this honestly. The people who actually keep things running are often at lower positions than their functional importance would suggest — and their loyalty, or lack of it, is one of the most important things to understand about an institution\'s durability.</p>'}},
+  facilitators:{name:'Facilitators',hover:'The connective tissue — they make coordination possible where hierarchy cannot',lede:'Palace · Org · Internal',
+    ex:{sentence:'Facilitators are the internal coordinators of establishment power — they bridge silos, smooth information flow, and ensure the institution\'s parts actually talk to each other.',
+    paragraph:'Facilitators rarely have formal authority commensurate with their actual influence. They work by enabling others — creating conditions for decisions to be made, information to flow across structural boundaries, and conflicts to be resolved before they become crises. Their power is relational rather than positional: they know how to navigate the real system (as distinct from the official system) and use that knowledge to keep things moving. In any large institution, the quality of facilitation often determines whether interdepartmental friction becomes productive tension or destructive blockage.',
+    page:'<p>Facilitators do the work that institutional hierarchy makes necessary but doesn\'t officially recognize: they bridge the gaps between formally separated units, translate between different institutional languages, and keep information flowing that the org chart assumes will flow on its own.</p><p>Their distinctive characteristic is that their power exceeds their formal authority. A good Facilitator can accomplish things that someone three levels above them in the hierarchy cannot, because they have built the relational trust that makes informal coordination possible. This is not soft power — it is the actual mechanism through which complex organizations function.</p><p>In O² analysis, identifying the real Facilitators is often the most important diagnostic step. They are frequently underinvested in, undercompensated, and underappreciated — which means they are also the most likely to leave when conditions deteriorate, taking with them the informal knowledge that holds the institution\'s coordination together.</p>'}},
+  dissenters:{name:'Dissenters',hover:'The loyal critics — they challenge direction from inside, not against',lede:'Palace · Org · Internal',
+    ex:{sentence:'Dissenters are the internal critics of establishment power — they question direction, flag contradictions, and represent the institution\'s own capacity for self-correction.',
+    paragraph:'The Dissenter exists inside the Org function of the Palace — at the very heart of establishment state power. This is deliberate. Durable institutions need internal critics; they need to catch their own errors before those errors become catastrophic. The Dissenter challenges from within, using the institution\'s own language and appealing to its stated values. Their challenge is loyal — oriented toward making the institution better rather than replacing it. How an organization treats its Dissenters is one of the most sensitive indicators of institutional health.',
+    page:'<p>The Dissenter is one of the most revealing roles in the entire framework — not because of what they do, but because of where they are. They sit inside the Palace\'s Org function, at the core of establishment state power, and their role is to challenge it. This is not an accident of institutional design; it is a feature.</p><p>Durable institutions develop mechanisms for internal critique precisely because external critique alone is insufficient to correct the errors that accumulate within any complex organization. The Dissenter is that mechanism. They are not the Alternative — they are the establishment\'s own immune system, the voice that says "we are not living up to what we say we are" from within the institution, in its own language, with institutional standing.</p><p>In O² diagnostic work, the fate of Dissenters is one of the most sensitive indicators of institutional health. An institution that actively supports its Dissenters has a self-correcting capacity. An institution that suppresses them is accumulating errors that will eventually surface in ways it cannot contain.</p>'}},
+  surveillors:{name:'Surveillors',hover:'The watchers at distance — they observe patterns without entering',lede:'Palace · Intel · External',
+    ex:{sentence:'Surveillors are the observational arm of establishment intelligence — they track patterns, movements, and behaviors from outside without direct penetration of the spaces they monitor.',
+    paragraph:'Surveillors are the least intimate and most scalable of the Intel roles. Their tools are systemic: they watch patterns, aggregated data, public behaviors, and environmental signals. Their strength is breadth; they can observe many things simultaneously over extended time. Their limitation is depth: they see what happens but rarely why. An Intel function that relies primarily on Surveillors will have enormous situational awareness and genuine strategic blindness — knowing everything that occurs while understanding very little of the interior logic that drives it.',
+    page:'<p>Surveillors operate at a distance from what they observe. Their mode is pattern-recognition rather than penetration: they watch flows of behavior, track movements, analyze aggregated data, and build pictures of the external environment from publicly available or passively collected information.</p><p>The surveillance mode is the most scalable form of intelligence — one Surveillor apparatus can monitor thousands of actors simultaneously. It is also the most limited: you can watch everything that happens and still fail to understand why it happens, because the meaning of behavior is often invisible to observation alone. The Surveillor knows the territory; the Spy knows the interior.</p><p>In O² analysis, an Intel function built primarily on surveillance is often accompanied by systematic over-confidence — organizations that monitor extensively tend to believe they understand more than they do. The gap between surveillance data and actual comprehension is one of the most productive places to look for strategic error.</p>'}},
+  spies:{name:'Spies',hover:'Inside the other — they operate under cover in adversary space',lede:'Palace · Intel · External',
+    ex:{sentence:'Spies penetrate adversary or alternative spaces under cover, becoming temporarily part of what they are watching and gaining the interior knowledge that surveillance cannot reach.',
+    paragraph:'The Spy is the most ethically complex Intel role. Where Surveillors observe and Informants report, Spies actively deceive — they adopt cover identities, build false relationships, and participate in communities they are undermining. This makes them extraordinarily effective at gathering deep intelligence and extraordinarily difficult to manage. The structural risk of "going native" — the Spy beginning to genuinely identify with the community they\'ve infiltrated — is built into the role. In PGC simulations, the Spy role reliably produces the most intense moral complexity of any position in the framework.',
+    page:'<p>The Spy\'s defining characteristic is deception: they are inside adversary or alternative space as something other than what they are. This fundamental dishonesty is what makes them so effective and so ethically complicated. The intelligence they gather is qualitatively different from what Surveillors produce — it comes from the interior, from real relationships, from being present in spaces where the truth is spoken because no one suspects they are listening.</p><p>The psychological demands of the Spy role are extraordinary. Maintaining a false identity over time, building genuine-seeming relationships with people who trust you, participating in a community whose activities you are actively undermining — these require a particular kind of compartmentalization that most people cannot sustain indefinitely.</p><p>The structural risk all Spy programs face is not physical capture but the slow reorientation of loyalty that can happen when someone lives, for long enough, as someone else. The Spy who has spent years in an alternative community may find that their sympathies have shifted in ways that cannot be fully undone.</p>'}},
+  informants:{name:'Informants',hover:'Already inside — they carry information across the boundary they already straddle',lede:'Palace · Intel · External',
+    ex:{sentence:'Informants are members of alternative or adversary communities who pass information to the establishment — sources rather than agents, already embedded in the spaces they report on.',
+    paragraph:'The Informant differs from the Spy crucially: they were already there. They are genuine members of alternative or adversary communities who have decided — for whatever reason — to pass information to the establishment. This makes them more valuable than Spies in many ways (real relationships, real standing, real access) and more complex to manage (their motivations are personal, not institutional, and not ultimately controllable). The Informant is a liminal figure who belongs to two worlds simultaneously and is fully trusted by neither.',
+    page:'<p>The Informant is perhaps the most structurally interesting Intel role because they reveal something about the permeability of the boundary between Establishment and Alternative. If a community has Informants, it means the boundary is not fully closed — that there are people whose identities, interests, or loyalties span the line that the framework otherwise treats as definitive.</p><p>Informants come from many motivations: financial incentive, ideological disillusionment, personal grievance, coercion, or genuine belief that they are doing the right thing. This variability is what makes them both valuable and unreliable. An Informant with complicated motivations will provide complicated information — colored by what they want the establishment to believe, what they want to protect, and what they have decided not to tell.</p><p>In O² analysis, the presence of Informants is a significant diagnostic signal: it suggests that the alternative community has not successfully created the conditions of trust and commitment that prevent people from crossing to the other side.</p>'}},
+  observers:{name:'Observers',hover:'The watchful inside — they read the room before it speaks',lede:'Cathedral · Board · Internal',
+    ex:{sentence:'Observers are the internal monitors of Cathedral governance — they track the temperature of internal discourse and identify tensions before they surface publicly.',
+    paragraph:'Observers occupy a quiet but essential role in the Board function. They are the people who notice what\'s happening before anyone says anything — who is not speaking, whose alliances have shifted, where the undercurrent of disagreement is running. This pre-verbal intelligence is often what allows the Board to respond to internal crises before they become public ruptures. The Observer\'s power is informational: they see more than most people know they are seeing. In O² diagnostic work, strong Observer capacity is a hallmark of institutionally mature organizations.',
+    page:'<p>Observers are the Board\'s early warning system. They do not intervene, arbitrate, or judge — they watch, and they understand what they\'re watching. Their value is in the gap between what is said and what is true: they can read that gap, which means they can provide the Board with an accurate picture of the institution\'s internal state rather than the performed version that most formal communication produces.</p><p>The Observer\'s skill is social and perceptual. They are students of what is not said: the meeting where the important discussion happened in the hallway beforehand, the report no one questioned too closely because everyone knew what questioning it would reveal, the resignation that felt sudden to everyone except those who had been watching.</p><p>In O² diagnostic work, organizations with strong Observer capacity make fewer avoidable internal crises. They know what\'s coming. Organizations without it are regularly surprised by things that were visible for months to anyone paying attention.</p>'}},
+  mediators:{name:'Mediators',hover:'The bridge between factions — they hold the institution together across disagreement',lede:'Cathedral · Board · Internal',
+    ex:{sentence:'Mediators are the dispute-resolution function of Cathedral governance — they broker compromises, sustain relationships across factions, and prevent internal disagreements from fracturing the institution.',
+    paragraph:'Mediators do the difficult relational work that institutions need but rarely formally reward. They sit between people who genuinely disagree, build the trust that makes agreement possible, and find formulations that let competing parties each claim something. This is not neutral work — Mediators inevitably shape outcomes through the choices they make about how to frame problems and which solutions to surface. The best Mediators are trusted by all factions precisely because they are never fully captured by any, and their standing depends on that independence being real.',
+    page:'<p>Mediation is one of the most consequential and least glamorous functions in any institution. The Mediator\'s job is to stand in the space between genuine disagreement and create the conditions for continued cooperation — not by resolving the disagreement, which may be irresolvable, but by building enough trust and finding enough common ground that the institution doesn\'t fracture over it.</p><p>The Mediator\'s effectiveness depends on credibility with all parties, which means it is slowly built and quickly destroyed. An institution\'s Mediators are among its most precious relational assets — their value is invisible until the moment it\'s needed, at which point nothing else can substitute for it.</p><p>In O² diagnostic work, organizations with well-developed Mediator capacity tend to have longer institutional longevity and better management of internal dissent. They can hold larger ranges of internal disagreement without fracturing — which means they can be more honest with themselves about their own contradictions.</p>'}},
+  supporters:{name:'Supporters',hover:'The faith-holders — they sustain the commitment that makes everything else possible',lede:'Cathedral · Board · Internal',
+    ex:{sentence:'Supporters are the institutional faith-holders of the Board function — the people whose genuine commitment to the mission sustains everyone around them and provides the social glue that holds the organization together.',
+    paragraph:'Supporters are often underestimated because their contribution is relational and emotional rather than transactional. They are the people who genuinely believe in what the institution is doing, who bring that belief into everyday interactions, and whose presence signals to others that the organization is worth investing in. Maintaining genuine enthusiasm for an institution over time — through its failures and compromises — requires a particular resilience. The ratio of Supporters to Dissenters within the Board function is a useful diagnostic indicator: too many Supporters and the institution loses its capacity for self-correction; too few and it loses its capacity for sustained commitment.',
+    page:'<p>The Supporter\'s role is easy to underestimate until you\'ve seen what happens when there are none left. They are the people who believe — not naively, but with the kind of committed, experienced loyalty that comes from having seen the organization at its worst and decided it is still worth supporting. Their belief is contagious in the best sense: it creates the social conditions in which other people\'s commitment can be sustained.</p><p>Supporters are distinct from yes-men or institutional cheerleaders. The best Supporters understand the institution\'s failures clearly and support it anyway — because they believe in its mission even when its execution is inadequate. An institution full of cheerleaders is brittle; an institution with genuine Supporters has a reservoir of commitment it can draw on in difficult times.</p><p>In O² diagnostic work, the health of the Supporter cohort often predicts institutional resilience more accurately than any measure of structural or financial strength. Institutions can survive enormous external pressure if their internal Supporters remain committed; they can collapse quickly if Supporters quietly disengage.</p>'}},
+  agents:{name:'Agents',hover:'The doers abroad — they make things happen in spaces the institution cannot reach directly',lede:'Cathedral · Diplomacy · External',
+    ex:{sentence:'Agents are the establishment church\'s operational representatives in external spaces — they move things forward on the institution\'s behalf in environments beyond its direct control.',
+    paragraph:'Agents differ from Diplomats and Envoys in their orientation toward action rather than negotiation or transmission. Where Diplomats negotiate formally and Envoys carry messages, Agents facilitate — they make things happen. They work in external spaces where the institution cannot operate directly, using their representative standing to broker introductions, create conditions, and serve the institution\'s interests without formal engagement. Agents typically work with considerable autonomy and require high institutional trust, because they act in the institution\'s name without direct oversight.',
+    page:'<p>The Agent operates at the edge of the institution\'s formal reach — in spaces where it has interests but not official presence, influence but not authority. Their work is facilitative: they don\'t negotiate agreements or deliver messages — they make things happen, often quietly, in ways that serve the institution\'s interests without requiring its formal involvement.</p><p>This operational independence is the Agent\'s defining characteristic and greatest risk. They are trusted to act in the institution\'s name without supervision, which means their judgment is the institution\'s judgment in the field. The question of how much autonomy to grant an Agent — and how to maintain accountability across that distance — is one of the most difficult management challenges in the Diplomacy function.</p><p>In PGC simulations, Agent roles are often the most tactically flexible and narratively interesting positions in the Cathedral quadrant, precisely because they operate with discretion and independence that more formal roles cannot.</p>'}},
+  diplomats:{name:'Diplomats',hover:'The formal negotiators — they represent the institution in structured exchanges with other powers',lede:'Cathedral · Diplomacy · External',
+    ex:{sentence:'Diplomats are the establishment church\'s formal negotiators — they engage other centers of power in recognized channels, representing the institution\'s interests and values in official exchange.',
+    paragraph:'The Diplomat role is characterized by formality: they engage through recognized procedures, with recognized standing, representing positions the institution has officially sanctioned. This is their strength — they can negotiate binding agreements, make official statements, and create durable inter-institutional relationships. It is also their constraint: they must represent a coherent position and are bound by their mandate. The best Diplomats find formulations that satisfy both parties\' core interests while honoring their institutional mandates — turning genuine disagreement into workable agreement without anyone formally conceding.',
+    page:'<p>Diplomacy in the O² framework is specifically formal: Diplomats work in recognized channels, carrying recognized authority, in exchanges that both parties understand as official. This formality is what makes their work matter — a Diplomat\'s agreement is the institution\'s agreement. This weight of representation is both the role\'s power and its constraint.</p><p>The greatest challenge in the Diplomat role is the gap between what the institution wants and what is actually achievable. A Diplomat who returns with an agreement their institution dislikes but that represents the best available outcome is doing their job correctly; one who over-promises to avoid difficult conversations at the table creates problems that arrive home with them.</p><p>In O² analysis, the Diplomat function reveals whether an institution is engaged in genuine strategic negotiation or performing diplomacy as a substitute for it — maintaining the form of exchange without the substance of genuine engagement with the other party\'s actual interests.</p>'}},
+  envoys:{name:'Envoys',hover:'The message-carriers — they bring the institution\'s voice to places it cannot reach',lede:'Cathedral · Diplomacy · External',
+    ex:{sentence:'Envoys carry the establishment church\'s message, values, and presence to communities and contexts beyond its normal reach, bridging institutional authority and the world it seeks to influence.',
+    paragraph:'Envoys occupy a bridging role: trusted by the institution to represent it faithfully, and trusted by the communities they engage to bring genuine communication rather than pure broadcast. The Envoy\'s effectiveness depends entirely on this dual trust — losing either side renders them useless or counterproductive. In O² diagnostic work, the health of the Envoy function reveals whether an institution is genuinely in dialogue with external communities or simply speaking at them.',
+    page:'<p>The Envoy is a messenger who carries weight. They don\'t just transmit information — they embody the institution\'s presence in spaces it cannot directly occupy, and their reception there tells you something important about how the institution is actually perceived beyond its own walls.</p><p>What distinguishes an effective Envoy from an ineffective one is not rhetorical skill but trust. Communities that have been engaged by Envoys over time develop a sense of whether those Envoys are bringing genuine communication or managed messaging. When the trust is real, Envoys can achieve things in a single conversation that years of official diplomacy cannot.</p><p>In O² diagnostic work, organizations that invest in genuine Envoy relationships — rather than treating the Envoy function as communications and PR — tend to have far more accurate pictures of how they are perceived externally, and far more capacity to respond effectively when that external environment changes.</p>'}},
+  innovators:{name:'Innovators',hover:'The idea-generators — they find what doesn\'t exist yet and imagine what could',lede:'Encampment · Disruption · Internal',
+    ex:{sentence:'Innovators are the creative engine of the alternative state — they identify new approaches, challenge inherited assumptions, and generate the ideas that might become the next foundation of the movement.',
+    paragraph:'Innovators thrive in the early stages of an idea — the space before something exists, where the challenge is to imagine what could be built. They are comfortable with uncertainty and failure in ways that most organizational roles are not. The Encampment\'s Disruption function depends on Innovators for its long-term vitality: without them, the alternative structure eventually runs out of new approaches and begins replicating what it was built to replace. The risk of Innovators is the inverse: they generate ideas without ensuring anyone builds them, creating an illusion of momentum without structural change.',
+    page:'<p>The Innovator is the Disruption function\'s imagination — the part of the alternative structure that keeps looking for approaches that don\'t yet exist because the existing ones aren\'t working. Their willingness to be wrong, repeatedly and publicly, is not a character flaw but an occupational requirement: the only way to find the new thing is to be willing to be wrong about many things that aren\'t it.</p><p>Innovators are often the most energizing and most frustrating people in an alternative organization. Their energy attracts commitment; their tendency to move on to the next idea before the last one is fully built can leave organizational wreckage in their wake. The question is not whether to have Innovators but how to connect them to Builders who can convert ideas into durable structures.</p><p>In O² diagnostic work, the Innovator-heavy organization that lacks Builders is one of the most common failure modes in the alternative sector: it produces a culture of perpetual reinvention that never accumulates the institutional weight needed to actually challenge establishment power.</p>'}},
+  builders:{name:'Builders',hover:'The constructors — they turn what should exist into what does',lede:'Encampment · Disruption · Internal',
+    ex:{sentence:'Builders are the constructive capacity of the alternative state — they take innovations and build them into real structures, systems, and communities of practice that can outlast the people who created them.',
+    paragraph:'Builders are what separates a movement that lasts from one that doesn\'t. They can take an Innovator\'s idea and figure out how to make it real — what infrastructure is needed, how to resource it, how to get people to participate, how to make it durable across time and turnover. Building is slower and less visible than innovating, which means Builders are often undervalued in alternative cultures that celebrate ideas over execution. The Innovator-to-Builder ratio is one of the most revealing diagnostics: too many Innovators and not enough Builders means intellectually productive but institutionally fragile.',
+    page:'<p>The Builder\'s work is the hardest to celebrate and the most essential to actually win. They don\'t generate ideas — they figure out how to make ideas real, which requires a completely different kind of intelligence: practical, patient, oriented toward durability rather than novelty.</p><p>What Builders produce — actual structures, actual systems, actual communities with real practices — is what makes an alternative organization capable of sustained impact rather than periodic disruption. A movement without Builders can create moments; it cannot create institutions. And institutions are how alternative power becomes durable enough to actually change the established order rather than just challenging it.</p><p>In O² diagnostic work, identifying an organization\'s real Builders — as distinct from its vocal Innovators — is often the most important step in assessing its actual capacity. Organizations that know how to retain, support, and give authority to their Builders tend to have significantly more impact per unit of energy than those that don\'t.</p>'}},
+  overseers:{name:'Overseers',hover:'The accountability layer — they make sure the building serves the mission',lede:'Encampment · Disruption · Internal',
+    ex:{sentence:'Overseers are the accountability function within the alternative state\'s building process — they ensure that what is being constructed actually serves the mission and hasn\'t drifted into self-referential or ineffective patterns.',
+    paragraph:'Overseers are distinct from Judges (who assess values fidelity in the Monastery) in that their focus is operational: are we building what we said we\'d build, and is it doing what we said it would do? This is harder to answer than it appears, especially for alternative organizations whose goals are ambitious and difficult to measure. The Overseer function prevents Disruption from becoming self-referential — from building impressive internal structures that are disconnected from the actual fight. In PGC simulations, Overseers are often the roles that deliver inconvenient truths at exactly the wrong moment.',
+    page:'<p>Overseers ask the questions that alternative organizations are often most reluctant to answer: Is what we\'re building actually working? Are we building what we said we\'d build, or have we drifted? Are our internal structures serving the mission, or have they become the mission?</p><p>These are uncomfortable questions in any organizational culture, and especially uncomfortable in alternative cultures where internal critique can feel like betrayal. The Overseer\'s role is to insist on asking them anyway — not from hostility but from genuine commitment to effectiveness. They are the function that keeps the Disruption process honest about the gap between intention and reality.</p><p>In O² analysis, organizations with robust Overseer capacity tend to learn from their failures more quickly and accumulate less institutional debt — the weight of programs and structures that no longer serve their original purpose but have developed constituencies that make them difficult to end.</p>'}},
+  insurgents:{name:'Insurgents',hover:'The frontal challengers — they make the conflict undeniable',lede:'Encampment · Militia · External',
+    ex:{sentence:'Insurgents are the most visible and confrontational Militia role — they directly challenge the established order\'s legitimacy, disrupt its normal operations, and keep the alternative cause in the public frame.',
+    paragraph:'Insurgents operate on the front line of the conflict between established and alternative power. Their method is direct confrontation: they contest the establishment\'s narrative, disrupt its operations, and make visible what it would prefer to keep invisible. The Insurgent\'s visibility is both their strength (they generate attention, recruit others, force responses) and their vulnerability (they are the most exposed, most targeted, most likely to be arrested, discredited, or burned out). An organization with a strong Insurgent function but weak Disruption is burning without building.',
+    page:'<p>Insurgents are the Encampment made visible. Where the rest of the Militia function operates with varying degrees of discretion, the Insurgent is specifically oriented toward public confrontation — their work is legible to everyone, including the establishment they are challenging.</p><p>This visibility serves a structural function beyond the immediate tactical impact of any individual action. Insurgents demonstrate that resistance is possible and ongoing; they recruit people who were on the edge of committing; they force the establishment to spend resources responding rather than consolidating. The cost is exposure, and the cost is real: Insurgents are depleted by their visibility in ways that less exposed roles are not.</p><p>In O² analysis, the health of the Insurgent cohort is closely tied to the health of the Disruption function. Insurgents who are fed by a strong Disruption function — who have real organizational backing and know their efforts are building toward something — are dramatically more effective and more durable than Insurgents operating in isolation.</p>'}},
+  militants:{name:'Militants',hover:'The committed core — they sustain the fight through the long stretches',lede:'Encampment · Militia · External',
+    ex:{sentence:'Militants are the endurance capacity of the alternative state — committed to the cause across time and difficulty, providing the Encampment with the operational continuity that makes sustained campaigns possible.',
+    paragraph:'The Militant is defined by commitment over time rather than visibility in the moment. Where Insurgents are in the front window, Militants are the persistent presence that shows up again and again over months and years. They sustain the alternative structure through the long stretches when nothing is exciting and the cause is difficult. Movements that consist only of Insurgents tend to burn out; it is the Militants who provide the continuity that allows a setback to become a strategic pause rather than a collapse.',
+    page:'<p>The Militant is the sustained note beneath the Insurgent\'s dramatic gesture. They are the people for whom commitment to the alternative cause is not a phase or a moment but an orientation — the people who are still there when the excitement has faded, the media have moved on, and the work is slow and hard and unglamorous.</p><p>Their importance to the Encampment is hard to overstate. Insurgent energy is self-refreshing in good times — new people are recruited, new energy is generated. But in difficult times, when the cause has suffered reversals and maintaining commitment requires real sacrifice, it is the Militant base that determines whether the organization survives.</p><p>In O² analysis, the depth and quality of the Militant cohort is often the most honest measure of an alternative organization\'s actual strength — more honest than the number of Insurgents it can put in the street on a good day, more honest than the sophistication of its strategy, more honest than the charisma of its leadership.</p>'}},
+  operatives:{name:'Operatives',hover:'The specialists — they execute high-consequence tasks that require specific capabilities',lede:'Encampment · Militia · External',
+    ex:{sentence:'Operatives are the specialist function of the Militia — they execute specific tasks requiring particular skills, access, or capabilities, often less visible than other Militia roles but highly consequential.',
+    paragraph:'Operatives differ from Insurgents and Militants in their specialization: they are deployed for specific tasks that require specific capacities. Where the Insurgent confronts and the Militant persists, the Operative executes — a particular access point, a particular technical capability, a particular relationship to be activated at the right moment. This makes Operatives among the most valuable and most carefully managed roles in the Militia function, often kept at some distance from the broader organization for operational security.',
+    page:'<p>The Operative is the precision instrument in the Militia\'s toolkit. They are not deployed for sustained presence or visible confrontation but for specific, consequential actions that require specific capabilities. Their value is in the gap between what the organization needs done and what its other roles are equipped to do.</p><p>Operatives work with a degree of autonomy and compartmentalization that most organizational roles don\'t experience. They know what they need to know and not more; they are trusted with specific tasks and not necessarily with broader strategic context. This is both a protection mechanism and a management challenge: Operatives who don\'t understand the strategic context of their work may execute correctly and still produce the wrong outcome.</p><p>In PGC simulations, Operative roles add precision and unpredictability to scenarios in equal measure — they can shift the situation in ways that are difficult to anticipate, which is precisely the point.</p>'}},
+  judges:{name:'Judges',hover:'The verdict-givers — they name when the community has failed its own standards',lede:'Monastery · Opposition · Internal',
+    ex:{sentence:'Judges are the explicit accountability function within the alternative church — they assess whether the community is living up to its stated values and render that assessment publicly, within the community, with standing.',
+    paragraph:'The Judge role is one that most organizational cultures resist institutionalizing, because Judges make assessments rather than suggestions — they render verdicts about whether the community is actually doing what it says it believes. Without Judges, the Opposition function drifts into general criticism without specific accountability. In O² diagnostic work, organizations that have no Judge figures — no one whose role is to say "we failed our own standards here" — tend to develop a peculiar institutional bad faith: everyone knows things aren\'t right but no mechanism exists to name it officially.',
+    page:'<p>The Judge is the most formally critical role in the framework — their function is not to question or debate but to assess and declare. They render verdicts: this was consistent with our values, this was not; we acted with integrity here, we failed to here. This formality is both their power and their cost. The formal verdict carries weight precisely because it is not merely an opinion — it is a judgment made with standing, within the community, about the community.</p><p>The institutional courage required to support a genuine Judge function is considerable. Most communities prefer something softer — critique that doesn\'t quite reach the level of verdict, accountability that stops short of naming failure. The Monastery that can maintain genuine Judges — who are taken seriously rather than marginalized when their verdicts are uncomfortable — has a meaningful self-correcting capacity.</p><p>In PGC simulations, the Judge role is among the most consequential and most uncomfortable positions. Their verdicts change the game — not by applying external force but by changing the shared understanding of what has happened and what it means.</p>'}},
+  ringmasters:{name:'Ringmasters',hover:'The debate-holders — they create the conditions for honest internal challenge',lede:'Monastery · Opposition · Internal',
+    ex:{sentence:'Ringmasters are the process-keepers of internal debate within the alternative church — they don\'t take sides, but they hold open the space in which genuine challenge and principled disagreement can happen.',
+    paragraph:'The Ringmaster is a facilitative rather than substantive role: they don\'t have strong opinions about the outcome of debates, but they are deeply invested in whether the debate is happening honestly. They notice when someone is being silenced, when the conversation is steered away from an uncomfortable question, or when the community is performing agreement while actually disagreeing. Their presence makes genuine internal critique structurally possible. Without Ringmasters, honest opposition tends to happen only in private or not at all.',
+    page:'<p>The Ringmaster is the person who keeps the ring — who maintains the protected space in which the community\'s most difficult conversations can happen. This is not a passive role: it requires active intervention to prevent dominant voices from drowning out minority ones, to make room for the uncomfortable question everyone is thinking but no one will ask, and to recognize when the process itself has been captured by the outcome people want.</p><p>The Ringmaster\'s power is procedural rather than substantive, which makes it easy to underestimate. But the quality of an organization\'s internal deliberation — its actual capacity to think clearly about its own situation — depends almost entirely on whether the conditions for honest conversation exist. The Ringmaster creates those conditions.</p><p>In O² analysis, organizations with strong Ringmaster capacity tend to have significantly better strategic judgment over time, because they can actually process information that challenges their existing commitments. Organizations without Ringmasters tend to suffer from what looks like bad luck but is actually the accumulated cost of avoided conversations.</p>'}},
+  doubters:{name:'Doubters',hover:'The principled questioners — they voice what the community believes but won\'t say',lede:'Monastery · Opposition · Internal',
+    ex:{sentence:'Doubters give voice to principled uncertainty within the alternative church — they ask the foundational questions the community needs to confront but tends to suppress.',
+    paragraph:'The Doubter differs from the Dissenter (in the Palace\'s Org function) in the depth of their challenge: where the Dissenter questions specific decisions within a broadly shared institutional commitment, the Doubter questions the underlying commitments themselves. This is a more fundamental challenge — and consequently more threatening to communities whose identity is tightly bound to those commitments. How an alternative community treats its Doubters is one of the clearest tests of whether it is genuinely committed to truth or merely committed to its own narrative.',
+    page:'<p>The Doubter\'s question is the most fundamental one available in any community: what if we\'re wrong? Not wrong about this decision or that tactic, but wrong about the things we take most for granted — the premises, the values, the basic orientation that defines what we are.</p><p>This question is essential and threatening in equal measure. A community that cannot ask it is intellectually closed and cannot update when reality contradicts its expectations. A community in which everyone is constantly asking it may be unable to act at all. The Doubter\'s role is to keep the question alive without allowing it to become paralyzing — to maintain intellectual honesty without destroying the capacity for commitment.</p><p>The treatment of Doubters is one of the most revealing tests of a community\'s actual relationship to its stated values. Communities that genuinely value truth over comfort welcome their Doubters, even when it\'s uncomfortable. Communities that value comfort over truth suppress them, and in doing so, they begin the slow drift toward the rigidity that the Monastery was founded to resist.</p>'}},
+  radicals:{name:'Radicals',hover:'The edge-pushers — they expand the range of what can be publicly said and thought',lede:'Monastery · Resistance · External',
+    ex:{sentence:'Radicals are the leading edge of the alternative church\'s public presence — they say what others won\'t say yet, name what others won\'t name, and expand the space of what is publicly thinkable.',
+    paragraph:'The Radical\'s function is to move boundaries. They take the most risk because they operate furthest outside the sanctioned range of acceptable discourse. Their value is not just in their own interventions but in the effect those interventions have on everyone else: by occupying the extreme position, they shift the center. What seemed radical last year becomes the moderate alternative this year, partly because Radicals kept saying it until others caught up. The question for any alternative community is whether it supports its Radicals or uses them and then distances itself when the cost becomes too high.',
+    page:'<p>Radicals do something that no other role in the framework does: they expand the space of the sayable. They say things before it is safe to say them, before the community will support them publicly, before the mainstream will tolerate them. This is not recklessness — it is a specific strategic function. The category of what can be publicly argued, demanded, or imagined is not fixed; it expands when people push it, and Radicals are the ones doing the pushing.</p><p>The Radical\'s position is inherently unstable. They occupy an edge that others will eventually occupy too — which means either they are validated and the center moves toward them, or they are discredited and the edge collapses. This instability is the structural cost of the role. Radicals cannot be moderate about their radicalism; the moment they pull back to protect themselves, they stop doing what makes them Radicals.</p><p>In O² analysis, how an alternative community supports — or fails to support — its Radicals is one of the clearest indicators of whether it is actually committed to the change it claims to seek, or only to the change that is currently socially acceptable.</p>'}},
+  dissidents:{name:'Dissidents',hover:'The visible opposition — they hold the line in partially hostile territory',lede:'Monastery · Resistance · External',
+    ex:{sentence:'Dissidents maintain sustained, visible opposition within environments that are partially tolerant but fundamentally resistant — inside enough to be heard, outside enough to challenge.',
+    paragraph:'The Dissident occupies a uniquely difficult position: not fully outside (like the Exile) or at the extreme edge (like the Radical) but working within the partial tolerance of a system that is partly hostile to their presence. This gives them the access and visibility that Exiles don\'t have and the credibility that Radicals often lose. But they must constantly navigate the tension between being audible (which requires some accommodation) and being authentic (which requires not accommodating too much). The Dissident\'s primary resource is moral authority — and when that erodes, their role loses its distinctive power.',
+    page:'<p>The Dissident\'s structural position is one of managed tension: they are present within systems that do not fully accept them, speaking truths that those systems resist hearing, sustained by the credibility that comes from being present rather than exiled. They have access that the Exile lacks and credibility that the Radical often burns through. But they pay for this position continuously — in the compromises required to stay present, in the pressure to accommodate further than they should, in the constant question of whether proximity to the system is corrupting their capacity to challenge it.</p><p>The Dissident\'s moral authority depends on the perception — and the reality — that they are paying a real cost for their presence. A Dissident who is too comfortable, who has been too fully accommodated, loses the distinctive weight of their challenge. The establishment knows this and uses it: co-optation is one of the most effective tools for neutralizing Dissidents without having to directly suppress them.</p><p>In O² analysis, tracking the Dissident function over time reveals one of the most important dynamics in the framework: the slow negotiation between alternative challenge and establishment absorption, in which both sides are constantly adjusting their positions.</p>'}},
+  exiles:{name:'Exiles',hover:'The tradition-bearers — they carry what cannot currently exist within official structures',lede:'Monastery · Resistance · External',
+    ex:{sentence:'Exiles carry the tradition, memory, or vision of the alternative church across time and separation — preserving what the current order cannot accommodate against the day when it can.',
+    paragraph:'The Exile has been separated from the mainstream — physically, institutionally, or socially — and carries across time the knowledge, practices, and ways of understanding that cannot currently exist within official structures. This is not passive: maintaining coherent networks and memory in conditions of isolation requires active, ongoing work. Exiles are often the figures who matter most in retrospect: the people whose ideas seemed irrelevant or dangerous during one period become foundational in the next.',
+    page:'<p>The Exile\'s function is temporal preservation. They are the people who carry forward what cannot currently be sustained within the official order — keeping alive the practices, memories, relationships, and ways of thinking that the establishment would prefer to see disappear. This makes them both marginal in the present and potentially essential in the future.</p><p>What Exiles preserve is often not visible until it\'s needed. The tradition they maintain across decades of isolation can become the foundation for a new movement when conditions change. The memory they hold — of what was tried, what failed, what worked before conditions made it impossible — is often the most valuable strategic resource an alternative community has, and it is carried by Exiles because no one else kept it.</p><p>In O² analysis, the existence and vitality of the Exile community tells you something important about the organization\'s relationship to its own history. Organizations that maintain genuine connections to their Exiles — rather than treating them as failed members who left — have access to a kind of institutional memory that cannot be built from scratch.</p>'}},
+  followers:{name:'Followers',hover:'The human base — people power, participation, and commitment to the shared mission',lede:'Coordination Engine · Top Point',
+    ex:{sentence:'Followers are the foundation of the coordination engine — the people whose participation and sustained commitment make every other function in the system possible.',
+    paragraph:'Followers are not passive: the name describes their relationship to the system\'s direction rather than their level of engagement. They are the base of the diamond — the people who show up, take on tasks, and sustain the organization\'s capacity for action over time. Without Followers, Leaders have no one to lead, Knowers have no one to inform, and Feelers have no one to align. The quality and health of the Follower base is often the most accurate predictor of an organization\'s actual capacity.',
+    page:'<p>The name Followers can be misleading — it suggests passivity, but the people who occupy this role in the coordination engine are the engine\'s fuel. They are the human base whose participation makes the entire system operational. Without them, the diamond\'s other roles are capable only of planning what they cannot execute.</p><p>The health of the Follower base reveals the health of the organization\'s relationship with its own people. Are the people who show up being well-used? Are they being asked to take on things they\'re capable of? Are the Knowers giving them information that makes their participation more effective? These questions are answered in the Follower base\'s quality and stability.</p><p>In O² analysis, organizations with strong Follower bases — deep benches of genuinely committed participants — are resilient in ways that no other structural feature can replicate. They can absorb leadership failures, strategic errors, and external setbacks in ways that organizations with thin Follower bases cannot.</p>'}},
+  leaders:{name:'Leaders',hover:'The direction-givers — they orient the system and carry its authority',lede:'Coordination Engine · Bottom Point',
+    ex:{sentence:'Leaders provide the direction, vision, and authority that orient the entire coordination engine — the point from which the system\'s intentional, integrated action flows.',
+    paragraph:'Leaders in the O² framework are not simply those with formal authority — they are the people from whom the system\'s sense of direction actually comes, which may or may not correspond to the official hierarchy. Their function is orientation: they give the system a direction to move in and the authority to move together. Without Leaders, the coordination engine has resources and intelligence but no integrated will. The quality of leadership determines whether an organization can maintain strategic coherence across multiple simultaneous challenges.',
+    page:'<p>Leadership in the coordination engine is the function of intentional orientation — not the exercise of control but the provision of direction that others choose to follow. The Leader\'s role is to ensure that the system\'s energies are integrated toward shared ends rather than dissipated in uncoordinated effort.</p><p>The distinction between formal authority and actual leadership is one of the most important in O² diagnostic work. Organizations can have official leaders who do not actually orient the system and informal leaders who do. The coordination engine works when these two things are aligned; it develops significant inefficiencies when they\'re not.</p><p>The Leader\'s relationship to the other coordination engine points is what makes or breaks the engine\'s function. Leaders who are disconnected from Knowers make uninformed decisions with high confidence. Leaders who are disconnected from Feelers make technically correct decisions that the human base doesn\'t follow. The integration of all three connections is what makes Leadership in this framework genuinely systemic rather than merely hierarchical.</p>'}},
+  knowers:{name:'Knowers',hover:'The intelligence function — they know what\'s happening and what it means strategically',lede:'Coordination Engine · Left Point',
+    ex:{sentence:'Knowers are the intelligence and planning capacity of the coordination engine — they understand what is actually happening in the world and within the organization, and translate that into strategic clarity.',
+    paragraph:'Knowers hold the system\'s most reliable picture of reality. They synthesize information from multiple sources, identify patterns, and produce the strategic assessments that allow Leaders to make better decisions and Followers to take more effective action. The Knower\'s value depends entirely on their epistemic integrity — their capacity to tell the truth about what they know and what they don\'t, without shaping their assessments toward what the system wants to hear. Organizations with strong Knower functions make fewer catastrophic strategic errors.',
+    page:'<p>Knowers are the coordination engine\'s epistemic anchor — the function that insists on an accurate picture of reality even when accuracy is inconvenient. Their primary tool is synthesis: they take information from disparate sources, find the patterns that matter strategically, and produce assessments that leadership can actually use.</p><p>The greatest threat to the Knower function is not incompetence but institutional pressure. Organizations that are deeply committed to particular narratives create subtle and not-so-subtle pressure on their Knowers to confirm those narratives. Knowers who yield to that pressure stop being Knowers in any meaningful sense; they become producers of sophisticated-seeming justification for what the organization already wants to believe.</p><p>In O² diagnostic work, the independence of the Knower function from institutional pressure to confirm preferred conclusions is one of the most important and most difficult things to assess. Its effects are everywhere in organizations that have had it long enough, but the pressure itself is almost never officially acknowledged.</p>'}},
+  feelers:{name:'Feelers',hover:'The priority-setters — they sense what actually matters and why',lede:'Coordination Engine · Right Point',
+    ex:{sentence:'Feelers hold the priority-setting and relational intelligence of the coordination engine — they determine what matters most and bring the emotional and social discernment that strategic decisions require.',
+    paragraph:'Feelers are often the least understood and most undervalued of the coordination engine\'s four points. Their contribution is not primarily informational (like Knowers) or directional (like Leaders) but discerning: they bring a particular kind of intelligence to the question of what deserves attention and resources. They can sense where the energy in the system actually is, where commitments are real versus performed, and what the organization\'s actual priorities are versus its stated ones.',
+    page:'<p>Feelers bring to the coordination engine a kind of intelligence that is difficult to describe in organizational language because most organizational language is designed to exclude it: the felt sense of what matters, the relational intelligence that reads the room, the discernment that distinguishes real commitment from performed commitment and genuine priority from stated priority.</p><p>This is not mystical — it is a learnable, deployable capacity that has significant strategic value. Organizations that can accurately sense what their people actually care about, what external actors actually want, and what is actually possible in a given moment make better strategic decisions than organizations that rely only on formal information systems, which tend to systematically filter out the felt sense of the situation.</p><p>In O² analysis, the Feeler function often reveals the gap between an organization\'s official strategic picture and its actual lived situation. The official picture is what Knowers report; the actual situation includes everything that Feelers can sense but formal information systems cannot capture. Organizations that can access both have a significant strategic advantage.</p>'}},
+  convergence:{name:'Convergence',hover:'Where people and information activate together — awareness becomes organized action',lede:'Coordination Engine · Followers ↔ Knowers',
+    ex:{sentence:'Convergence is the intersection where the human base and the intelligence function meet — the point at which information becomes mobilizing and people become informed.',
+    paragraph:'Convergence happens when Followers and Knowers are in genuine dialogue: when the intelligence Knowers hold is translated into terms that actually move the Follower base, and when Followers\' on-the-ground experience feeds back into what Knowers understand. Without this intersection, the intelligence function produces sophisticated analysis that no one acts on, and the Follower base takes passionate but poorly informed action. Events, briefings, and shared forums that genuinely bridge these two roles are among the most valuable things the coordination engine can produce.',
+    page:'<p>Convergence is the moment at which intelligence becomes operational — when what is known becomes the basis for what is done. It requires both sides of the intersection to be genuinely present: Knowers who can translate their intelligence into terms that make sense for the Follower base, and Followers who are willing to update their actions based on what Knowers know.</p><p>The absence of Convergence produces two pathologies that are common in complex organizations. The first is the intelligence that nobody uses: Knowers produce sophisticated strategic analysis that sits in reports while the Follower base operates on instinct and assumption. The second is the energy that nobody informs: Followers take committed, passionate action based on an incomplete or inaccurate picture of the situation.</p><p>In O² analysis, the quality of Convergence is often the most direct measure of whether an organization\'s intelligence function is actually serving its operational capacity. Organizations with strong Convergence get smarter as they act; organizations without it get more confident without getting smarter.</p>'}},
+  harmony:{name:'Harmony',hover:'Where people and priorities align — the lived experience of being in sync with what matters',lede:'Coordination Engine · Followers ↔ Feelers',
+    ex:{sentence:'Harmony is the intersection where the human base and the priority-setting function synchronize — the felt experience of people genuinely aligned with what the organization most cares about.',
+    paragraph:'Harmony is not morale or cohesion in the ordinary sense — it is the specific alignment between what the organization says it prioritizes and what the people in it actually feel is being prioritized. When this alignment is real, Followers bring their best energy; when it is false, Followers eventually notice the gap and either disengage or begin performing commitment they don\'t feel. Building and maintaining Harmony requires the Feeler function to be honest about what the organization\'s actual priorities are, not just its aspirational ones.',
+    page:'<p>Harmony is the organization\'s capacity to be internally honest about what it values. It exists when the Feeler function\'s assessment of what actually matters is consistent with what the Follower base was told it would be asked to do and sacrifice.</p><p>The erosion of Harmony is one of the most common and most damaging dynamics in complex organizations. It usually begins gradually: small discrepancies between stated and actual priorities accumulate into a pervasive sense among the Follower base that the organization is not living up to its own values. This sense is corrosive precisely because it cannot easily be named or addressed through official channels — it is a felt misalignment, not a specific grievance.</p><p>In O² analysis, Harmony is best assessed not through surveys but through what Feelers can observe in the Follower base: the difference between people who are genuinely energized by their work and people who are performing that energy. Organizations with strong Harmony have the former; organizations with weak Harmony have mostly the latter, often for years before the consequences become visible.</p>'}},
+  execution:{name:'Execution',hover:'Where leadership and intelligence become operational — strategy made real',lede:'Coordination Engine · Leaders ↔ Knowers',
+    ex:{sentence:'Execution is the intersection where leadership direction and strategic intelligence are combined and systematized — where knowing what to do meets the authority to actually do it.',
+    paragraph:'Execution is where strategy either comes to life or dies quietly. It is the intersection at which the vision Leaders provide and the intelligence Knowers hold are translated into specific plans, resources, timelines, and accountabilities. Without strong Execution, organizations have either strategy without action or action without strategy. Strong Execution requires that Leaders and Knowers are in genuine dialogue — that Leaders are actually using what Knowers know, and that Knowers are orienting their intelligence toward what Leaders actually need to decide.',
+    page:'<p>Execution is the gap-closer between what an organization knows and what it does. It is where the coordination engine\'s intelligence and directional capacity are translated into the actual plans, resources, and accountabilities that make things happen. Without it, the other three points of the diamond can be individually excellent while collectively producing very little.</p><p>The failure mode at the Execution intersection is one of the most common organizational pathologies: the strategy that everyone agrees with in principle but that never gets operationalized, because the Leaders who endorsed it and the Knowers who recommended it never quite agreed on what it would actually require. Execution demands specificity, and specificity often reveals disagreements that the abstraction of strategy had concealed.</p><p>In O² diagnostic work, the strength of the Execution intersection often distinguishes organizations that are strategically sophisticated from organizations that are strategically effective — a distinction that matters enormously in the field. Strategic sophistication without strong Execution produces organizations that are very good at analyzing situations and very poor at changing them.</p>'}},
+  attunement:{name:'Attunement',hover:'Where authority and meaning are embodied together — ritual, tradition, and genuine alignment',lede:'Coordination Engine · Leaders ↔ Feelers',
+    ex:{sentence:'Attunement is the intersection where leadership authority and priority-setting meet — the shared practices, rituals, and traditions through which the organization\'s deepest commitments are embodied rather than merely stated.',
+    paragraph:'Attunement is the most cultural of the coordination engine\'s functional roles. It is the space where authority becomes legitimate through shared practice rather than just formal position — where Leaders demonstrate that they hold the values they claim to lead by, and where Feelers\' sense of what matters most is validated by the way authority is exercised. Organizations with strong Attunement have genuine shared rituals and a palpable sense that leadership and organizational values are actually aligned. Organizations with weak Attunement have nominal shared culture and real cynicism just below the surface.',
+    page:'<p>Attunement is how an organization\'s values become embodied rather than merely declared. It is the intersection at which what the Leaders do — how they exercise authority, what they choose to mark and celebrate, what they treat as sacred — reveals whether the Feelers\' sense of the organization\'s true priorities is accurate. When Leaders act in ways consistent with what the Feelers say matters, Attunement exists. When they don\'t, no amount of official communication about values will close the gap.</p><p>The rituals and traditions that live at this intersection are not decorative — they are the mechanism through which the organization\'s commitments are transmitted across time and membership. New members learn what the organization actually values not primarily through its official documents but through the practices that surround them: who is celebrated, what moments are marked, how authority is performed in small daily interactions.</p><p>In O² analysis, the quality of Attunement is often the best predictor of an organization\'s capacity to sustain its culture across leadership transitions. Organizations with strong Attunement have institutionalized their values in practice, not just in principle — which means the practices survive even when the specific Leaders who created them move on.</p>'}},
+  coordinator:{name:'Coordinator',hover:'The central aligner — holds the whole network in relationship',lede:'Coordination Engine · Center',
+    ex:{sentence:'The Coordinator is the single role that holds all four quadrants in relationship — the nervous system of the whole framework, the center without which the engine has no integrating principle.',
+    paragraph:'The Coordinator sits at the exact center of the O² framework, equidistant from all four quadrants and all eight functions. It is not aligned with any single quadrant — it serves all of them. Its function is alignment: keeping the different parts of the network in communication, preventing fragmentation, and ensuring the system\'s full capacity can be brought to bear on any given challenge. In PGC simulations, the Coordinator role is often the most strategically critical and the most difficult to play well.',
+    page:'<p>The Coordinator is the most unique role in the O² framework — the only role that does not belong to any single quadrant, function, or hemisphere. It sits at the exact center of the 2×2 matrix, at the intersection of all axes, equidistant from all four spaces. Its identity is not defined by where it stands but by the relationships it holds between all of them.</p><p>The Coordinator\'s function is alignment. In a system this complex — 33 roles, 8 functions, 4 quadrants, 2 axes, 1 root binary — fragmentation is the primary risk. Each quadrant has its own logic, its own values, its own way of understanding what needs to happen. The Coordinator is the role that can hold all of those logics simultaneously, translate between them, and keep the overall system oriented toward its shared purpose.</p><p>In PGC simulations, the Coordinator role requires the ability to listen across positions that are in genuine tension, to hold contradictions without collapsing them prematurely, and to keep the simulation moving toward coherence rather than fragmentation. It is, in a word, the hardest job in the room.</p>'}}
+};
+
+// ═══════════════════════════════════════════════════════
+// QUADRANT + FUNCTION DATA
+// ═══════════════════════════════════════════════════════
+const Q = {
+  palace:{name:'Palace',tagline:'Power made permanent',axis:'Establishment · State',acc:'var(--pal-acc)',bg:'var(--pal-bg)',dk:'var(--pal-dk)',
+    ex:{sentence:'The Palace is institutional power made permanent — the seat of sovereign will that legitimizes itself through hierarchy, architecture, and control of information.',
+    paragraph:'The Palace quadrant holds the Establishment\'s secular power — the official hierarchy, the sanctioned channels, and the full weight of institutional momentum. It does not argue for its legitimacy; it enacts it. Within any organization, the Palace is where the org chart lives, where surveillance is organized, and where the rules of engagement are set for everyone else. Its two functions — Org and Intel — give it both its skeleton and its nervous system.',
+    page:'<p>The Palace is the first quadrant of the O² framework, occupying the Establishment/State position. It is the canonical home of institutionalized secular power — the state at its most organized, its most self-assured, and its most architecturally dominant.</p><p>The Palace does not ask permission. It declares itself. Where the Cathedral must make an argument about meaning, the Palace makes an argument about permanence: it is here, it has always been here, and its very existence is its justification. Think of the buildings governments build — their scale, their materials, their symmetry. This is the Palace logic made stone.</p><p>The Palace\'s two functions — <strong>Org</strong> (internal structure and maintenance) and <strong>Intel</strong> (external surveillance and knowledge-gathering) — give it both its skeleton and its nervous system. Even within the Palace, the system contains its own challengers: the Dissenter role lives inside Org itself. Durable institutions need this capacity; institutions that suppress it are accumulating errors they cannot see.</p>'},
+    fns:{
+      org:{name:'Org',type:'Internal',desc:'How the establishment state structures and maintains itself internally.',acc:'var(--pal-acc)',lede:'Palace · Internal',roles:['operators','facilitators','dissenters'],
+        ex:{sentence:'Org is the internal architecture of state power — the rules, hierarchies, and procedures that hold the official order together.',
+        paragraph:'Org represents how the Palace manages its own interior: the org chart, the chain of command, the bureaucratic procedures, and the institutional culture that makes the state feel permanent. It is the function of self-maintenance — not watching the outside world, but ensuring the interior holds together. Operators run the machinery, Facilitators smooth the gears, and Dissenters question whether the machinery is actually working correctly.',
+        page:'<p>The Org function is the internal architecture of establishment state power. Where Intel faces outward to watch and know the world, Org faces inward to maintain, structure, and perpetuate the institution itself.</p><p>Org encompasses everything that makes a large institutional structure cohere: the formal hierarchy, the procedural rules, and the institutional culture that makes people feel they are part of something larger. <strong>Operators</strong> run the machinery; <strong>Facilitators</strong> coordinate across silos and maintain the informal relationships that formal structure cannot; <strong>Dissenters</strong> are the built-in critics who keep the institution honest from within.</p><p>In O² diagnostic work, the Org function is often where you find the gap between the official org chart and how the organization actually works. Who are the real operators? Which facilitators are actually powerful? And which dissenters are tolerated, which are marginalized, and which have already left?</p>'}},
+      intel:{name:'Intel',type:'External',desc:'How the establishment state watches, infiltrates, and knows the world outside.',acc:'var(--pal-acc)',lede:'Palace · External',roles:['surveillors','spies','informants'],
+        ex:{sentence:'Intel is how the Palace sees and maps the world beyond its walls — through surveillance, infiltration, and cultivated sources.',
+        paragraph:'Intel is the external-facing function of the Palace: the state\'s apparatus for knowing. Where Org faces inward, Intel faces outward — watching adversaries, monitoring alternative structures, gathering information that can be used to preempt threats or shape events. Surveillors observe from distance, Spies penetrate under cover, and Informants are already inside alternative structures and report outward. Together, they give the Palace situational awareness.',
+        page:'<p>Intel is the Palace\'s sensory apparatus — its capacity to see, map, and know the world beyond its own walls. While Org maintains the interior, Intel navigates the exterior: watching adversaries, monitoring alternative structures, and gathering intelligence that gives the establishment a decisive informational advantage.</p><p><strong>Surveillors</strong> observe from a distance, gathering information through monitoring rather than infiltration. <strong>Spies</strong> penetrate adversary spaces under cover, becoming temporarily part of what they are watching. <strong>Informants</strong> are already inside — genuine members of alternative communities who report outward to the establishment. Each mode carries different risks, different ethics, and different value.</p><p>In PGC scenarios, Intel roles hold information asymmetry, which is one of the most powerful currencies in any simulation. But they also face the deepest ethical tensions: the line between legitimate intelligence and betrayal, between knowing and weaponizing that knowledge.</p>'}}
+    }
+  },
+  cathedral:{name:'Cathedral',tagline:'Faith made monumental',axis:'Establishment · Church',acc:'var(--cat-acc)',bg:'var(--cat-bg)',dk:'var(--cat-dk)',
+    ex:{sentence:'The Cathedral is the establishment\'s meaning-making arm — institutional religion, moral authority, and the architecture of sanctioned belief.',
+    paragraph:'The Cathedral quadrant is where the Establishment Church lives — the official seat of spiritual authority. Like the Palace, it declares itself. The Cathedral governs its interior through the Board function (mediating internal disputes, maintaining doctrine) and engages the world through Diplomacy (negotiating with other powers, projecting moral authority). It holds the narrative — the why — while the Palace holds the force.',
+    page:'<p>The Cathedral is the Establishment\'s claim on meaning. Where the Palace says "we have the force," the Cathedral says "we have the truth." Both declare themselves — but their declarations are of fundamentally different kinds.</p><p>In organizational terms, the Cathedral quadrant represents the ideological and cultural layer of institutional power: the official doctrine, the sanctioned values, the rituals and traditions that give the organization a sense of purpose and moral legitimacy. Every large institution has a Cathedral dimension — even purely secular ones. It is wherever the "why we exist" lives.</p><p>The relationship between Palace and Cathedral is one of the most productive tensions in the framework. The Palace says "because we have the power." The Cathedral says "because it is right." In any real organization, these two claims are constantly negotiating with each other — and the health of the institution depends on how well that negotiation works.</p>'},
+    fns:{
+      board:{name:'Board',type:'Internal',desc:'How the establishment church governs and mediates internally.',acc:'var(--cat-acc)',lede:'Cathedral · Internal',roles:['observers','mediators','supporters'],
+        ex:{sentence:'The Board is how the Cathedral governs itself internally — setting doctrine, mediating disputes, and maintaining the coherence of official belief.',
+        paragraph:'The Board function is the Cathedral\'s internal governance mechanism. It handles the questions the Cathedral must answer to itself: what do we officially believe, how do we resolve doctrinal disputes, who has authority over what. Observers track the temperature of internal discourse; Mediators broker compromises; Supporters maintain the commitment that holds the whole structure together. The Board is where the Cathedral\'s internal politics happen.',
+        page:'<p>The Board is the Cathedral\'s interior governance — the apparatus through which the establishment church manages its own coherence, resolves its internal conflicts, and maintains the integrity of its official doctrine.</p><p><strong>Observers</strong> monitor the temperature of internal discourse, identifying emerging tensions before they surface publicly. <strong>Mediators</strong> act: they facilitate dialogue between competing factions, broker compromises, and maintain the relationships that make continued cooperation possible. <strong>Supporters</strong> sustain: they are the keepers of institutional loyalty — the people whose belief in the mission reinforces everyone else\'s commitment.</p><p>In O² diagnostic work, the Board function often reveals the unofficial power structures — the people who actually shape doctrine through informal influence rather than formal authority.</p>'}},
+      diplomacy:{name:'Diplomacy',type:'External',desc:'How the establishment church negotiates and projects outward.',acc:'var(--cat-acc)',lede:'Cathedral · External',roles:['agents','diplomats','envoys'],
+        ex:{sentence:'Diplomacy is how the Cathedral carries its values and authority into the world — projecting moral legitimacy, negotiating alliances, carrying its message outward.',
+        paragraph:'Diplomacy is the Cathedral\'s external face: the function that carries its values and authority into the world beyond its walls. Where Intel gathers, Diplomacy speaks and negotiates. Agents facilitate things on behalf of the institution in external spaces; Diplomats engage in formal negotiation with other power centers; Envoys carry the institution\'s message to communities it cannot reach directly. Together they are the institution\'s public voice, ambassador, and emissary.',
+        page:'<p>Diplomacy is how the Cathedral moves through the world — how it makes its presence felt beyond its own structures and carries its message outward.</p><p><strong>Agents</strong> operate at the edge of the institution\'s formal reach, facilitating outcomes without requiring formal institutional involvement. <strong>Diplomats</strong> engage in recognized channels, carrying recognized authority, in exchanges that both parties understand as official. <strong>Envoys</strong> bridge the distance between institutional authority and the world it seeks to influence, embodying the institution\'s presence in spaces it cannot directly occupy.</p><p>In O² diagnostic terms, the Diplomacy function reveals how an organization presents itself externally — and whether that presentation matches its internal reality. Strong Diplomacy functions have coherent messages, skilled negotiators, and trusted envoys.</p>'}}
+    }
+  },
+  encampment:{name:'Encampment',tagline:'Power in motion',axis:'Alternative · State',acc:'var(--enc-acc)',bg:'var(--enc-bg)',dk:'var(--enc-dk)',
+    ex:{sentence:'The Encampment is the alternative state — power organized for survival and action, provisional and self-contained, ready to strike or withdraw.',
+    paragraph:'The Encampment is the counterpart to the Palace in the alternative hemisphere. Where the Palace is permanent, the Encampment is provisional. Where the Palace declares itself, the Encampment withholds itself — organized around survival and purpose rather than legitimacy and display. Its two functions are Disruption (building and innovating from within) and Militia (applying force and operating in the field). The Encampment cannot win by playing the Palace\'s game, so it builds a different game entirely.',
+    page:'<p>The Encampment is the Alternative State — secular, organizational, force-based power that operates outside and against the official order. The contrast with the Palace is fundamental: where the Palace is permanent, the Encampment is provisional; where the Palace declares itself, the Encampment withholds itself.</p><p>The Encampment\'s logic is organized around survival and purpose. It cannot afford the Palace\'s architectural ambitions — every resource goes toward the mission. It is turned inward: self-sustaining, self-governing, not asking for external legitimation. Its structures are functional rather than symbolic, and it is always ready to either strike or withdraw, because adaptability is its primary defensive advantage.</p><p>The two Encampment functions — <strong>Disruption</strong> (internal building and innovation) and <strong>Militia</strong> (external force and field operations) — map its dual capacity. Disruption is how the Encampment grows stronger in the long term. Militia is how it engages the external world right now. When these two are in sync, the Encampment is formidable. When they\'re not, it becomes brittle.</p>'},
+    fns:{
+      disruption:{name:'Disruption',type:'Internal',desc:'How the alternative state innovates and builds from within.',acc:'var(--enc-acc)',lede:'Encampment · Internal',roles:['innovators','builders','overseers'],
+        ex:{sentence:'Disruption is how the Encampment builds its own internal strength — generating new approaches, constructing alternative structures, and overseeing their integrity.',
+        paragraph:'Disruption is the Encampment\'s internal development function: the people and processes dedicated to building something new rather than just opposing something old. Innovators generate new ideas and approaches; Builders actually construct the new structures and systems; Overseers maintain accountability for the building process, ensuring what\'s being built actually serves the mission. This is how the Encampment grows its own capacity over time.',
+        page:'<p>Disruption is the Encampment\'s most important long-term function — it is how the alternative state builds rather than merely opposes. The word is deliberate: it is not just about breaking the old order, but about building something genuinely different in its place.</p><p><strong>Innovators</strong> are the creative capacity: they identify new approaches, challenge received wisdom, and generate the ideas that might eventually become the new standard. <strong>Builders</strong> are the constructive capacity: they take innovations and actually build them — new structures, new systems, new communities of practice. <strong>Overseers</strong> are the accountability function: they ensure that what is being built actually serves the Encampment\'s mission and hasn\'t drifted.</p><p>In O² diagnostic work, the Innovator-to-Builder ratio is one of the most revealing metrics for an alternative organization: too many Innovators and no Builders means intellectually productive but institutionally fragile.</p>'}},
+      militia:{name:'Militia',type:'External',desc:'How the alternative state applies force and operates in the field.',acc:'var(--enc-acc)',lede:'Encampment · External',roles:['insurgents','militants','operatives'],
+        ex:{sentence:'Militia is the Encampment\'s operational arm — the people who carry the alternative\'s force, presence, and action into the field.',
+        paragraph:'Militia is the Encampment\'s external face: the function through which it engages the world beyond its own structures. Where Disruption builds inside, Militia operates outside. Insurgents challenge the established order directly; Militants are the committed action-takers who sustain the campaign over time; Operatives execute specific tasks requiring particular capabilities. The Militia is the Encampment\'s visible edge.',
+        page:'<p>Militia is the Encampment\'s external operational arm — the people and structures through which the alternative state engages, challenges, and contests the world beyond its own borders.</p><p><strong>Insurgents</strong> are the most visible: they challenge the established order directly, disrupting its normal functioning and keeping the alternative cause in the public frame. <strong>Militants</strong> are the committed core: they sustain the effort over the long term, through failure and success alike. <strong>Operatives</strong> are the specialists: they execute specific tasks requiring particular skills or access, often working in ways that are less visible but highly consequential.</p><p>In O² analysis, the Militia function reveals how an organization\'s external activities relate to its internal capacity. Strong Militia functions are supplied and resupplied by strong Disruption functions — the building feeds the operating. When the connection breaks, Militia roles burn out.</p>'}}
+    }
+  },
+  monastery:{name:'Monastery',tagline:'Faith withdrawn',axis:'Alternative · Church',acc:'var(--mon-acc)',bg:'var(--mon-bg)',dk:'var(--mon-dk)',
+    ex:{sentence:'The Monastery is the alternative church — a community that has withdrawn from the official order to preserve something the Cathedral has corrupted or abandoned.',
+    paragraph:'The Monastery is the counterpart to the Cathedral in the alternative hemisphere. Where the Cathedral declares itself, the Monastery withholds itself. It is faith that has turned inward — not because it has given up, but because it has decided the official church cannot be reformed from within. Its two functions are Opposition (judging and challenging from within the alternative community) and Resistance (enduring, subverting, and counter-narrativizing outward).',
+    page:'<p>The Monastery is the Alternative Church — the community of meaning that has withdrawn from the official order, not in defeat, but in principled refusal. Where the Cathedral declares and displays its faith, the Monastery withholds and protects its own. It is turned inward, self-sustaining, operating outside the Cathedral\'s shadow.</p><p>The Monastery\'s logic is fundamentally about preservation and counter-narrative. It believes the official church has become corrupt, co-opted, or simply wrong — and that the true tradition must be maintained elsewhere, against pressure, through time. The Monastery builds its own liturgy, its own memory, its own community — in conscious opposition to what the Cathedral has become.</p><p>Like the Palace, the Monastery contains its own built-in critics: <strong>Doubters</strong> exist inside the Opposition function itself. The system has self-challenge at every level. The health of the Monastery can be measured in how it treats its Doubters: suppression means it is drifting toward the rigidity it was founded to resist.</p>'},
+    fns:{
+      opposition:{name:'Opposition',type:'Internal',desc:'How the alternative church judges, challenges, and doubts from within.',acc:'var(--mon-acc)',lede:'Monastery · Internal',roles:['judges','ringmasters','doubters'],
+        ex:{sentence:'Opposition is the Monastery\'s internal critical capacity — the function of judging, questioning, and maintaining principled dissent within the alternative community itself.',
+        paragraph:'Opposition is the Monastery\'s internal conscience — through which the alternative church holds itself accountable. It is not enough to oppose the Cathedral; the Monastery must also resist its own tendency toward orthodoxy. Judges render verdicts on the community\'s fidelity to its values; Ringmasters hold the space for honest internal debate; Doubters voice the questions no one else will ask. Without Opposition, the Monastery eventually becomes a mirror image of the Cathedral it opposes.',
+        page:'<p>Opposition is the Monastery\'s internal critical function — the mechanism through which the alternative community holds itself accountable and resists the slide toward the very orthodoxies it opposes in the Cathedral.</p><p>This is one of the most important and underappreciated functions in the framework. Any community that defines itself by what it opposes faces a constant risk: it can become exactly what it opposes, just with different content. The Opposition function exists to prevent this.</p><p><strong>Judges</strong> render explicit verdicts about whether the community is living up to its own standards. <strong>Ringmasters</strong> orchestrate the space of internal debate: they create and maintain the conditions in which honest debate can happen. <strong>Doubters</strong> are the questioners: they voice the hesitations and the "but what if we\'re wrong" that keeps the community intellectually alive.</p>'}},
+      resistance:{name:'Resistance',type:'External',desc:'How the alternative church endures, subverts, and counter-narrativizes outward.',acc:'var(--mon-acc)',lede:'Monastery · External',roles:['radicals','dissidents','exiles'],
+        ex:{sentence:'Resistance is how the Monastery engages the world — through endurance under pressure, subversion of official narratives, and the patient construction of counter-stories.',
+        paragraph:'Resistance is the Monastery\'s external engagement function: how it carries its alternative vision into the world beyond its own community. Unlike Militia (which operates through force), Resistance operates through narrative, endurance, and presence. Radicals push the edge of what can be said publicly; Dissidents maintain visible opposition within partially hostile contexts; Exiles carry the tradition across time and distance.',
+        page:'<p>Resistance is the Monastery\'s external function — how the alternative church engages, endures, and contests within the wider world. Where Opposition faces inward, Resistance faces outward. Where Militia operates through force, Resistance operates through narrative: the patient, persistent work of telling a different story about what is true, what is right, and what is possible.</p><p><strong>Radicals</strong> push the edge of public discourse: they expand the space of what can be publicly argued or imagined. <strong>Dissidents</strong> maintain visible opposition within partially hostile environments: inside enough to be heard, outside enough to challenge. <strong>Exiles</strong> carry the tradition at the furthest remove — often the most isolated position, but sometimes the most historically important, preserving what the current order cannot accommodate.</p><p>Strong Resistance functions have Radicals making new ground, Dissidents translating that ground for broader audiences, and Exiles preserving the tradition against the day it is needed again.</p>'}}
+    }
+  }
+};
+
+const ENGINE = {
+  points:[
+    {key:'followers',pos:'Top'},
+    {key:'leaders',pos:'Bottom'},
+    {key:'knowers',pos:'Left'},
+    {key:'feelers',pos:'Right'}
+  ],
+  intersections:[
+    {key:'convergence',between:'Followers ↔ Knowers'},
+    {key:'harmony',between:'Followers ↔ Feelers'},
+    {key:'execution',between:'Leaders ↔ Knowers'},
+    {key:'attunement',between:'Leaders ↔ Feelers'}
+  ]
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let S = {curQ:null, curF:null, curView:'map', ctxTarget:null, depth:'sentence'};
+const views = {map:document.getElementById('v-map'), quad:document.getElementById('v-quad'), fn:document.getElementById('v-fn'), coord:document.getElementById('v-coord')};
+
+// ═══════════════════════════════════════════════════════
+// TRANSITIONS
+// ═══════════════════════════════════════════════════════
+function showView(id){
+  Object.entries(views).forEach(([k,el])=>{
+    if(k===id){el.classList.remove('hidden');el.scrollTop=0;}
+    else el.classList.add('hidden');
+  });
+  S.curView=id;
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+function toMap(){
+  S.curQ=null;S.curF=null;
+  setBc([{label:'Framework Map',active:true}]);
+  showView('map');
+}
+
+function toQ(qid){
+  S.curQ=qid;S.curF=null;S.ctxTarget=qid;
+  const qd=Q[qid];
+  setBc([{label:'Framework Map',fn:'toMap()'},{label:qd.name,active:true}]);
+  renderQuad(qid);
+  showView('quad');
+}
+
+function toF(e,qid,fid){
+  if(e)e.stopPropagation();
+  S.curQ=qid;S.curF=fid;S.ctxTarget=qid+'_'+fid;
+  const qd=Q[qid],fd=qd.fns[fid];
+  setBc([{label:'Framework Map',fn:'toMap()'},{label:qd.name,fn:`toQ('${qid}')`},{label:fd.name,active:true}]);
+  renderFn(qid,fid);
+  showView('fn');
+}
+
+function toCoord(){
+  S.curQ='coordinator';S.curF=null;S.ctxTarget='coordinator';
+  setBc([{label:'Framework Map',fn:'toMap()'},{label:'Coordinator',active:true}]);
+  renderCoord();
+  showView('coord');
+}
+
+function setBc(items){
+  document.getElementById('bc').innerHTML=items.map((it,i)=>{
+    const sep=i>0?'<span class="bcs">›</span>':'';
+    if(it.active)return `${sep}<span class="bci on">${it.label}</span>`;
+    return `${sep}<span class="bci" onclick="${it.fn}">${it.label}</span>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════
+const QK = Object.keys(Q);
+function qChips(curQid,curFid){
+  return QK.map(k=>{
+    const qd=Q[k];
+    const isCur=k===curQid&&!curFid;
+    return `<span class="vchip${isCur?' cur':''}" style="background:${qd.bg};color:${qd.acc};${isCur?'':'opacity:.5'}" onclick="toQ('${k}')" data-tt="${qd.tagline}" onmouseenter="tt(event,this)" onmouseleave="ht()">${qd.name}</span>`;
+  }).join('')+`<span class="vsep">|</span><span class="vchip" style="background:var(--eng);color:var(--gold);opacity:.6;border-color:var(--gold-dim)" onclick="toCoord()" data-tt="Coordination Engine" onmouseenter="tt(event,this)" onmouseleave="ht()">◈ Coord</span>`;
+}
+
+function renderQuad(qid){
+  const qd=Q[qid];
+  const fnHtml=Object.entries(qd.fns).map(([fid,fd])=>`
+    <div class="fntile" onclick="toF(null,'${qid}','${fid}')" oncontextmenu="showCtx(event,'${qid}_${fid}')" data-tt="${fd.ex.sentence}" onmouseenter="tt(event,this)" onmouseleave="ht()">
+      <div class="fntile-badge">${fd.type}</div>
+      <div class="fntile-name" style="color:${fd.acc}">${fd.name}</div>
+      <div class="fntile-desc">${fd.desc}</div>
+      <div class="fntile-roles">${fd.roles.map(rk=>`<span class="fntile-role">${R[rk].name}</span>`).join('')}</div>
+    </div>`).join('');
+  views.quad.innerHTML=`<div class="vinner" style="background:${qd.bg}00">
+    <div class="vnav">
+      <span class="vbk" onclick="toMap()">← Map</span>
+      ${qChips(qid,null)}
+    </div>
+    <div class="qhd" oncontextmenu="showCtx(event,'${qid}')">
+      <div class="qmeta">${qd.axis}</div>
+      <div class="qname-big" style="color:${qd.acc}">${qd.name}</div>
+      <div class="qtag">${qd.tagline}</div>
+    </div>
+    <div class="fn-grid">${fnHtml}</div>
+  </div>`;
+  views.quad.style.background=qd.bg;
+}
+
+function renderFn(qid,fid){
+  const qd=Q[qid],fd=qd.fns[fid];
+  const roleHtml=fd.roles.map(rk=>{
+    const rd=R[rk];
+    return `<div class="rc" oncontextmenu="showCtx(event,'${rk}')" data-tt="${rd.hover}" onmouseenter="tt(event,this)" onmouseleave="ht()">
+      <div class="rc-name" style="color:${fd.acc}">${rd.name}</div>
+      <div class="rc-phrase">${rd.hover}</div>
+      <div class="rc-hint">Right-click to explore</div>
+    </div>`;
+  }).join('');
+  views.fn.innerHTML=`<div class="vinner">
+    <div class="vnav">
+      <span class="vbk" onclick="toQ('${qid}')">← ${qd.name}</span>
+      ${qChips(qid,fid)}
+    </div>
+    <div class="fhd" oncontextmenu="showCtx(event,'${qid}_${fid}')">
+      <div class="fmeta">${qd.axis} · ${fd.type}</div>
+      <div class="fname-big" style="color:${fd.acc}">${fd.name}</div>
+      <div class="fdesc">${fd.desc}</div>
+    </div>
+    <div class="sec-title">Roles</div>
+    <div class="rcards">${roleHtml}</div>
+    <div class="sec-title">About this function</div>
+    <div style="font-size:13px;line-height:1.85;color:rgba(255,255,255,.45);margin-bottom:32px">${fd.ex.paragraph}</div>
+  </div>`;
+  views.fn.style.background=qd.dk;
+}
+
+function renderCoord(){
+  const cd=R.coordinator;
+  const ptHtml=ENGINE.points.map(p=>{
+    const rd=R[p.key];
+    return `<div class="engcard" oncontextmenu="showCtx(event,'${p.key}')" data-tt="${rd.hover}" onmouseenter="tt(event,this)" onmouseleave="ht()">
+      <div class="engcard-name">${rd.name}</div>
+      <div class="engcard-sub">Point · ${p.pos}</div>
+      <div class="engcard-desc">${rd.hover}</div>
+    </div>`;
+  }).join('');
+  const itsHtml=ENGINE.intersections.map(it=>{
+    const rd=R[it.key];
+    return `<div class="engcard" oncontextmenu="showCtx(event,'${it.key}')" data-tt="${rd.hover}" onmouseenter="tt(event,this)" onmouseleave="ht()">
+      <div class="engcard-name">${rd.name}</div>
+      <div class="engcard-sub">${it.between}</div>
+      <div class="engcard-desc">${rd.hover}</div>
+    </div>`;
+  }).join('');
+  views.coord.innerHTML=`<div class="vinner">
+    <div class="vnav">
+      <span class="vbk" onclick="toMap()">← Map</span>
+      ${qChips(null,null)}
+    </div>
+    <div class="qhd" oncontextmenu="showCtx(event,'coordinator')">
+      <div class="qmeta">${cd.lede}</div>
+      <div class="qname-big" style="color:var(--gold)">${cd.name}</div>
+      <div class="qtag">The central aligner — holds the whole network in relationship</div>
+    </div>
+    <div class="cov-intro">${cd.ex.paragraph}</div>
+    <div class="sec-title">Diamond Points — People &amp; Resources</div>
+    <div class="eng-grid" style="margin-bottom:24px">${ptHtml}</div>
+    <div class="sec-title">Intersections — Functional Roles</div>
+    <div class="eng-grid">${itsHtml}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.22);margin-top:20px;letter-spacing:.07em">33 total roles across the framework · Right-click any card for deeper explanations</div>
+  </div>`;
+  views.coord.style.background='var(--bg)';
+}
+
+// ═══════════════════════════════════════════════════════
+// TOOLTIP
+// ═══════════════════════════════════════════════════════
+const tipEl=document.getElementById('tt');
+function tt(e,el){const t=el.getAttribute('data-tt');if(!t)return;tipEl.textContent=t;tipEl.style.display='block';moveTip(e);}
+function ht(){tipEl.style.display='none';}
+document.addEventListener('mousemove',e=>{if(tipEl.style.display==='block')moveTip(e);});
+function moveTip(e){
+  const x=e.clientX+14,y=e.clientY-8;
+  const w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  tipEl.style.left=Math.min(x,window.innerWidth-w-10)+'px';
+  tipEl.style.top=Math.min(y,window.innerHeight-h-10)+'px';
+}
+
+// ═══════════════════════════════════════════════════════
+// CONTEXT MENU
+// ═══════════════════════════════════════════════════════
+const ctxEl=document.getElementById('ctx');
+function showCtx(e,id){
+  e.preventDefault();e.stopPropagation();
+  S.ctxTarget=id;
+  const d=getD(id);
+  document.getElementById('ctxname').textContent=d?d.name:id;
+  ctxEl.style.display='block';
+  ctxEl.style.left=Math.min(e.clientX,window.innerWidth-200)+'px';
+  ctxEl.style.top=Math.min(e.clientY,window.innerHeight-145)+'px';
+}
+document.addEventListener('click',()=>ctxEl.style.display='none');
+document.addEventListener('contextmenu',e=>{if(!e.target.closest('[oncontextmenu]')){e.preventDefault();ctxEl.style.display='none';}});
+
+// ═══════════════════════════════════════════════════════
+// DATA LOOKUP
+// ═══════════════════════════════════════════════════════
+function getD(id){
+  if(!id)return null;
+  if(R[id])return R[id];
+  if(Q[id])return Q[id];
+  const[q,f]=id.split('_');
+  return Q[q]?.fns?.[f]||null;
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════
+function openMo(depth){
+  ctxEl.style.display='none';
+  if(!S.ctxTarget)return;
+  const d=getD(S.ctxTarget);
+  if(!d)return;
+  S.depth=depth;
+  document.getElementById('molede').textContent=d.lede||d.axis||'';
+  document.getElementById('motitle').textContent=d.name;
+  renderMo(d,depth);
+  document.querySelectorAll('.motab').forEach(t=>t.classList.toggle('on',t.dataset.d===depth));
+  document.getElementById('mov').classList.add('open');
+}
+function renderMo(d,depth){
+  const txt=d.ex?.[depth]||'';
+  const el=document.getElementById('mobody');
+  el.innerHTML=txt.includes('<p>')?txt:`<p>${txt}</p>`;
+}
+function swD(depth){
+  S.depth=depth;
+  const d=getD(S.ctxTarget);
+  if(d)renderMo(d,depth);
+  document.querySelectorAll('.motab').forEach(t=>t.classList.toggle('on',t.dataset.d===depth));
+}
+function closeMo(){document.getElementById('mov').classList.remove('open');}
+document.getElementById('mov').addEventListener('click',e=>{if(e.target===document.getElementById('mov'))closeMo();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMo();});
+</script>
+</body>
+</html>
